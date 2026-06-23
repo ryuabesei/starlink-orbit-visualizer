@@ -1,5 +1,6 @@
 .DS_Store
 .tle-cache/
 .vercel/
+.gh-config/
 node_modules/
 npm-debug.log*
