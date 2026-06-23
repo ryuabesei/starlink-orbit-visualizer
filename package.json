@@ -1,0 +1,10 @@
+{
+  "name": "starlink-orbit-visualizer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 server.py",
+    "check": "node --check app.js && node --check api/starlink-tle.js"
+  }
+}

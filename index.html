@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Starlink Orbit Visualizer</title>
+    <link rel="stylesheet" href="./styles.css?v=20260619-7">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="scene" aria-label="Starlink orbital visualization">
+        <canvas id="space"></canvas>
+        <div id="map2d" class="map2d" aria-label="2D world map satellite ground tracks">
+          <canvas id="map2dCanvas"></canvas>
+          <div class="map2d-caption">
+            <strong>2D Ground Track</strong>
+            <span>衛星の地上直下点と選択衛星の軌跡</span>
+          </div>
+        </div>
+        <div class="hud">
+          <div>
+            <p class="eyebrow">Public TLE / CelesTrak</p>
+            <h1>Starlink Orbit Visualizer</h1>
+          </div>
+          <div class="status-grid">
+            <div>
+              <span>衛星</span>
+              <strong id="satelliteCount">0</strong>
+            </div>
+            <div>
+              <span>表示軌道</span>
+              <strong id="orbitCount">0</strong>
+            </div>
+            <div>
+              <span>時刻</span>
+              <strong id="simTime">--:--:--</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="control-panel" aria-label="controls">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Live controls</p>
+            <h2>軌道表示</h2>
+          </div>
+          <button id="refreshButton" type="button">TLE更新</button>
+        </div>
+
+        <form class="search-panel" id="satelliteSearchForm" role="search">
+          <label for="satelliteSearch">
+            <span>衛星検索</span>
+          </label>
+          <div class="search-row">
+            <input id="satelliteSearch" type="search" placeholder="STARLINK-2455 / 48117">
+            <button id="satelliteSearchButton" type="submit">検索</button>
+          </div>
+          <p id="satelliteSearchStatus">衛星名またはNORAD番号で検索できます</p>
+        </form>
+
+        <label>
+          <span>表示する衛星数</span>
+          <input id="satelliteLimit" type="range" min="50" max="1500" step="50" value="500">
+          <output id="satelliteLimitValue">500</output>
+        </label>
+
+        <label>
+          <span>軌道線の本数</span>
+          <input id="orbitLimit" type="range" min="5" max="80" step="5" value="25">
+          <output id="orbitLimitValue">25</output>
+        </label>
+
+        <label>
+          <span>時間倍率</span>
+          <input id="speed" type="range" min="0" max="120" step="1" value="12">
+          <output id="speedValue">12x</output>
+        </label>
+
+        <div class="toggles">
+          <label>
+            <input id="showAllSatellites" type="checkbox">
+            <span>全機表示</span>
+          </label>
+          <label>
+            <input id="showOrbits" type="checkbox" checked>
+            <span>軌道線</span>
+          </label>
+          <label>
+            <input id="showLabels" type="checkbox">
+            <span>ラベル</span>
+          </label>
+        </div>
+
+        <div class="view-mode-panel" aria-label="view mode">
+          <span>地図モード</span>
+          <div class="mode-buttons">
+            <button id="view3dButton" type="button" aria-pressed="true">3D地球</button>
+            <button id="view2dButton" type="button" aria-pressed="false">2D世界地図</button>
+          </div>
+          <p>2Dでは緯度経度に投影した地上直下点と、選択衛星の地上軌跡を表示します。</p>
+        </div>
+
+        <div class="altitude-legend" aria-label="altitude color legend">
+          <span>高度別カラー</span>
+          <p>現在のTLEから計算した衛星の高度で色分けしています。近い高度帯の衛星は同じ運用レイヤーにまとまって見えます。</p>
+          <div class="legend-items">
+            <i style="--swatch: #b78cff"></i><b>&lt; 400 km / 低高度</b>
+            <i style="--swatch: #67d7ff"></i><b>400-500 km / 主な低軌道帯</b>
+            <i style="--swatch: #84f2b6"></i><b>500-560 km / 標準的な運用帯</b>
+            <i style="--swatch: #f8c45e"></i><b>560 km+ / 高めのシェル</b>
+          </div>
+        </div>
+
+        <div class="thermosphere-panel" aria-label="thermosphere density proxy">
+          <span>熱圏密度プロキシ</span>
+          <p>TLEのBSTARから推定した相対的な大気抵抗指標です。衛星形状・姿勢・軌道制御の影響を含むため、絶対密度ではありません。</p>
+          <div id="thermospherePlot" class="density-plot">
+            <strong>衛星データ取得後に表示</strong>
+          </div>
+        </div>
+
+        <div class="watch-panel" aria-label="low altitude and high drag watch">
+          <div class="panel-row">
+            <span>再突入・低高度ウォッチ</span>
+            <button id="updateWatchButton" type="button">更新</button>
+          </div>
+          <p>高度300km未満、またはBSTAR由来proxyが高い衛星をリスト化します。</p>
+          <div id="reentryWatchList" class="mini-list">
+            <strong>衛星データ取得後に表示</strong>
+          </div>
+        </div>
+
+        <div class="visibility-panel" aria-label="observer visibility">
+          <span>地点から見える衛星</span>
+          <p>指定地点から仰角しきい値以上に見えるStarlinkと、次回通過候補を計算します。</p>
+          <label>
+            <span>地点プリセット</span>
+            <select id="observerPreset">
+              <option value="35.6762,139.6503,東京">東京</option>
+              <option value="40.7128,-74.0060,New York">New York</option>
+              <option value="51.5072,-0.1276,London">London</option>
+              <option value="-33.8688,151.2093,Sydney">Sydney</option>
+              <option value="custom">カスタム</option>
+            </select>
+          </label>
+          <div class="coordinate-grid">
+            <label>
+              <span>緯度</span>
+              <input id="observerLat" type="number" step="0.0001" value="35.6762">
+            </label>
+            <label>
+              <span>経度</span>
+              <input id="observerLon" type="number" step="0.0001" value="139.6503">
+            </label>
+            <label>
+              <span>最小仰角</span>
+              <input id="minElevation" type="number" step="1" value="25">
+            </label>
+          </div>
+          <div class="visibility-actions">
+            <button id="computeVisibilityButton" type="button">可視衛星を計算</button>
+            <button id="clearVisibilityButton" type="button">表示解除</button>
+          </div>
+          <div id="visibilityResults" class="mini-list">
+            <strong>地点を指定して計算してください</strong>
+          </div>
+        </div>
+
+        <div class="readout" id="readout">
+          <span>データ取得待ち</span>
+          <strong>CelesTrak Starlink TLE</strong>
+        </div>
+
+        <div class="export-panel" aria-label="report export">
+          <span>レポート出力</span>
+          <p>現在の表示条件、選択衛星、熱圏proxy散布図、表示中衛星データを書き出します。</p>
+          <div class="export-actions">
+            <button id="exportPngButton" type="button">PNGレポート</button>
+            <button id="exportCsvButton" type="button">CSVデータ</button>
+          </div>
+        </div>
+
+        <p class="note">
+          TLE: <a href="https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle" target="_blank" rel="noreferrer">CelesTrak Starlink group</a>
+          <br>
+          <a href="./methodology.html">計算方法を見る</a>
+        </p>
+      </aside>
+    </main>
+
+    <script type="module" src="./app.js?v=20260619-7"></script>
+  </body>
+</html>

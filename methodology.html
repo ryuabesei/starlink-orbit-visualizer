@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>計算方法 | Starlink Orbit Visualizer</title>
+    <link rel="stylesheet" href="./styles.css?v=20260618-1">
+  </head>
+  <body class="method-page">
+    <main class="method-shell">
+      <header class="method-hero">
+        <p class="eyebrow">Methodology</p>
+        <h1>計算方法</h1>
+        <p>
+          このページは、Starlink Orbit Visualizer がTLEから衛星位置・高度・高度変化・熱圏密度プロキシをどのように計算しているかを、実装に対応する形で整理したものです。
+        </p>
+        <a class="back-link" href="./index.html">可視化に戻る</a>
+      </header>
+
+      <section class="method-section">
+        <h2>1. 入力データ</h2>
+        <p>
+          入力はCelesTrakのStarlink TLEです。TLEは衛星名、1行目、2行目の3行1組として扱います。
+        </p>
+        <pre><code>STARLINK-XXXX
+1 NNNNNU ...
+2 NNNNN ...</code></pre>
+        <p>
+          実装では各TLEを <code>satellite.twoline2satrec(line1, line2)</code> に渡し、SGP4で伝播できる <code>satrec</code> オブジェクトへ変換します。
+        </p>
+        <div class="method-grid">
+          <div><strong>NORAD番号</strong><span><code>satrec.satnum</code></span></div>
+          <div><strong>TLE epoch</strong><span><code>satrec.jdsatepoch</code></span></div>
+          <div><strong>平均運動</strong><span><code>satrec.no</code></span></div>
+          <div><strong>軌道傾斜角</strong><span><code>satrec.inclo</code></span></div>
+          <div><strong>BSTAR</strong><span><code>satrec.bstar</code></span></div>
+        </div>
+      </section>
+
+      <section class="method-section">
+        <h2>2. 衛星位置の計算</h2>
+        <p>
+          任意の時刻 <code>t</code> について、SGP4でTLE epochから衛星の位置と速度を伝播します。
+        </p>
+        <pre><code>propagated = satellite.propagate(satrec, t)
+r_eci = propagated.position   // km
+v_eci = propagated.velocity   // km/s</code></pre>
+        <p>
+          この時点の位置はECI座標です。地球上の緯度・経度・高度や、Three.js上の地球固定表示に使うため、GMSTを計算して地球固定座標へ変換します。
+        </p>
+        <pre><code>gmst = satellite.gstime(t)
+r_ecf = satellite.eciToEcf(r_eci, gmst)
+geodetic = satellite.eciToGeodetic(r_eci, gmst)</code></pre>
+      </section>
+
+      <section class="method-section">
+        <h2>3. 高度・緯度・経度・速度</h2>
+        <p>
+          <code>eciToGeodetic</code> の結果から現在高度、緯度、経度を取り出します。緯度経度はラジアンから度へ変換します。
+        </p>
+        <pre><code>altitude_km = geodetic.height
+latitude_deg = degreesLat(geodetic.latitude)
+longitude_deg = degreesLong(geodetic.longitude)</code></pre>
+        <p>
+          速度はECI速度ベクトルの大きさです。
+        </p>
+        <pre><code>speed_km_s = sqrt(vx^2 + vy^2 + vz^2)</code></pre>
+      </section>
+
+      <section class="method-section">
+        <h2>4. 3D地球へのプロット</h2>
+        <p>
+          地球半径をThree.js空間で <code>1</code> とし、実距離kmを縮尺変換します。地球平均半径は <code>6371 km</code> としています。
+        </p>
+        <pre><code>scale = 1 / 6371
+x = r_ecf.x * scale
+y = r_ecf.z * scale
+z = -r_ecf.y * scale</code></pre>
+        <p>
+          <code>y</code> と <code>z</code> の入れ替えは、Three.jsの座標系と地球表示の向きを合わせるためです。
+        </p>
+      </section>
+
+      <section class="method-section">
+        <h2>5. 高度レイヤー色分け</h2>
+        <p>
+          現在高度 <code>altitude_km</code> に応じて、衛星点と軌道線を色分けします。
+        </p>
+        <div class="method-grid color-grid">
+          <div><i style="--swatch: #b78cff"></i><strong>&lt; 400 km</strong><span>低高度</span></div>
+          <div><i style="--swatch: #67d7ff"></i><strong>400-500 km</strong><span>主な低軌道帯</span></div>
+          <div><i style="--swatch: #84f2b6"></i><strong>500-560 km</strong><span>標準的な運用帯</span></div>
+          <div><i style="--swatch: #f8c45e"></i><strong>560 km+</strong><span>高めのシェル</span></div>
+        </div>
+      </section>
+
+      <section class="method-section">
+        <h2>6. 軌道線</h2>
+        <p>
+          軌道線は、中心時刻の前後50分、合計100分を96分割して、各時刻のSGP4位置を連続線として描いています。
+        </p>
+        <pre><code>for i = 0..96:
+    t_i = center_time - 50min + i * (100min / 96)
+    point_i = positionFromSGP4(satrec, t_i)</code></pre>
+      </section>
+
+      <section class="method-section">
+        <h2>7. 選択衛星の高度変化</h2>
+        <p>
+          衛星をクリックしたときの高度変化グラフは、現在時刻の前後90分を5分刻みで再計算しています。
+        </p>
+        <pre><code>for minute = -90 to +90 step 5:
+    t_i = selected_time + minute
+    altitude_i = altitudeFromSGP4(satrec, t_i)</code></pre>
+        <p>
+          横軸は時間、縦軸は高度kmです。現在時刻は縦線と点で示しています。
+        </p>
+      </section>
+
+      <section class="method-section">
+        <h2>8. 熱圏密度プロキシ</h2>
+        <p>
+          TLEだけから熱圏密度の絶対値を直接求めることはできません。このアプリでは、TLEに含まれる <code>BSTAR</code> を使い、相対的な大気抵抗・密度の proxy として表示しています。
+        </p>
+        <p>
+          実装では <code>abs(BSTAR)</code> の対数を取り、見やすい <code>0-100</code> の指数に正規化しています。
+        </p>
+        <pre><code>bstar = satrec.bstar
+magnitude = abs(bstar)
+logValue = log10(magnitude)
+proxy = clamp(((logValue + 6.5) / 3.5) * 100, 0, 100)</code></pre>
+        <p>
+          つまり、概念的には次のような見方です。
+        </p>
+        <pre><code>|BSTAR| が小さい → proxy低い
+|BSTAR| が大きい → proxy高い</code></pre>
+        <p>
+          ただしBSTARには、大気密度だけでなく、衛星の形状、姿勢、質量、抗力係数、軌道制御、TLEフィッティング誤差も混ざります。そのため、この値は絶対的な熱圏密度ではありません。
+        </p>
+      </section>
+
+      <section class="method-section">
+        <h2>9. 熱圏密度プロキシ散布図</h2>
+        <p>
+          散布図は、各衛星について次の2つを使います。
+        </p>
+        <pre><code>x = 現在高度 altitude_km
+y = BSTAR由来 proxy</code></pre>
+        <p>
+          点の色は高度レイヤーと同じです。表示点数が多すぎる場合は、描画負荷を抑えるためにサンプリングして表示します。
+        </p>
+      </section>
+
+      <section class="method-section warning-section">
+        <h2>10. 限界と今後の改善</h2>
+        <p>
+          現在の推定は、TLE 1時点のBSTARから作る相対指標です。より物理的に熱圏密度へ近づけるには、TLE時系列を使って軌道減衰を推定する必要があります。
+        </p>
+        <pre><code>TLE時系列
+→ 平均運動や半長軸の変化を計算
+→ 軌道減衰率を推定
+→ 仮定した Cd, A, m から密度を逆算
+→ F10.7, Ap, Kp など太陽活動データで補正
+→ NRLMSISE-00 などの大気モデルと比較</code></pre>
+        <p>
+          現在のページでは、プロダクト上の表示名として「熱圏密度プロキシ」または「BSTAR drag proxy」と呼ぶのが正確です。
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
