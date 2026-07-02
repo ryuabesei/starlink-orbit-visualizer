@@ -5,6 +5,7 @@ import * as satellite from "https://esm.sh/satellite.js@5.0.0";
 const TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle";
 const LOCAL_TLE_URL = "/api/starlink-tle";
 const TLE_CACHE_KEY = "starlink-orbit-visualizer:tles";
+const LANGUAGE_KEY = "starlink-orbit-visualizer:language";
 const EARTH_TEXTURE_URL = "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg";
 const EARTH_KM = 6371;
 const EARTH_RADIUS = 1;
@@ -20,6 +21,247 @@ const ALTITUDE_BANDS = [
   { max: Infinity, label: "560 km+", color: 0xf8c45e },
 ];
 
+const I18N = {
+  ja: {
+    "top.catalogue": "Catalogue",
+    "top.demo": "LIVE DEMO",
+    "panel.catalogue": "Catalogue",
+    "panel.fleet": "Starlink Fleet",
+    "button.refresh": "TLE更新",
+    "stat.satellites": "衛星",
+    "stat.orbits": "表示軌道",
+    "stat.time": "時刻",
+    "search.label": "衛星検索",
+    "search.placeholder": "STARLINK-2455 / 48117",
+    "search.button": "検索",
+    "search.help": "衛星名またはNORAD番号で検索できます",
+    "control.satelliteLimit": "表示する衛星数",
+    "control.orbitLimit": "軌道線の本数",
+    "control.speed": "時間倍率",
+    "toggle.all": "全機表示",
+    "toggle.orbits": "軌道線",
+    "toggle.labels": "ラベル",
+    "view.mode": "地図モード",
+    "view.3d": "3D地球",
+    "view.2d": "2D世界地図",
+    "view.help": "2Dでは緯度経度に投影した地上直下点と、選択衛星の地上軌跡を表示します。",
+    "altitude.title": "高度別カラー",
+    "altitude.help": "現在のTLEから計算した衛星の高度で色分けしています。",
+    "altitude.low": "< 400 km / 低高度",
+    "altitude.midLow": "400-500 km / 低軌道帯",
+    "altitude.standard": "500-560 km / 標準運用帯",
+    "altitude.high": "560 km+ / 高めのシェル",
+    "map.title": "2D Ground Track",
+    "map.help": "衛星の地上直下点と選択衛星の軌跡",
+    "scene.elapsed": "Mission Elapsed",
+    "scene.propagator": "Propagator",
+    "readout.wait": "データ取得待ち",
+    "readout.source": "CelesTrak Starlink TLE",
+    "thermo.title": "熱圏密度プロキシ",
+    "thermo.help": "TLEのBSTARから推定した相対的な大気抵抗指標です。衛星形状・姿勢・軌道制御の影響を含むため、絶対密度ではありません。",
+    "thermo.wait": "衛星データ取得後に表示",
+    "watch.title": "再突入・低高度ウォッチ",
+    "button.update": "更新",
+    "watch.help": "高度300km未満、またはBSTAR由来proxyが高い衛星をリスト化します。",
+    "visibility.title": "地点から見える衛星",
+    "visibility.help": "指定地点から仰角しきい値以上に見えるStarlinkと、次回通過候補を計算します。",
+    "visibility.preset": "地点プリセット",
+    "visibility.custom": "カスタム",
+    "visibility.lat": "緯度",
+    "visibility.lon": "経度",
+    "visibility.minElevation": "最小仰角",
+    "visibility.compute": "可視衛星を計算",
+    "visibility.clear": "表示解除",
+    "visibility.wait": "地点を指定して計算してください",
+    "export.title": "レポート出力",
+    "export.help": "現在の表示条件、選択衛星、熱圏proxy散布図、表示中衛星データを書き出します。",
+    "export.png": "PNGレポート",
+    "export.csv": "CSVデータ",
+    "methodology": "計算方法を見る",
+    "footer.source": "Public Starlink TLE derived from CelesTrak",
+    loadingStatus: "TLE取得中",
+    loadingMessage: "CelesTrakからStarlinkグループを読み込んでいます",
+    loadedStatus: "取得完了",
+    cacheStatus: "キャッシュ表示",
+    demoStatus: "デモ表示",
+    textureStatus: "地球テクスチャ未読込",
+    textureMessage: "地球画像を取得できなかったため、単色表示で続行しています",
+    parseEmpty: "TLEの解析結果が0件でした",
+    cacheMessage: (age) => `公開TLEの再取得に失敗したため、${age}前の取得データを表示しています`,
+    demoMessage: (error) => `公開TLEを取得できませんでした。接続回復後にTLE更新を押してください: ${error}`,
+    ageMinutes: (n) => `${n}分`,
+    ageHours: (n) => `${n}時間`,
+    tleLoaded: (n) => `${n}機のStarlink TLEを読み込みました`,
+    fetchedAt: (date) => `取得時刻: ${date}`,
+    latestEpoch: (date) => `TLE最新epoch: ${date}`,
+    unknown: "不明",
+    enterSearch: "衛星名またはNORAD番号を入力してください",
+    notFound: (q) => `該当する衛星が見つかりません: ${q}`,
+    highlighted: (name, norad) => `${name} / NORAD ${norad} を赤で強調表示中`,
+    mapHover: "2D地図ホバー",
+    hover: "ホバー中",
+    noSatData: "衛星データ取得後に表示",
+    noWatch: "該当衛星なし",
+    lowAltitude: "低高度",
+    highBstar: "高BSTAR",
+    altitude: "高度",
+    proxy: "proxy",
+    numericLatLon: "緯度・経度を数値で入力してください",
+    loadSatFirst: "衛星データを先に取得してください",
+    filterCleared: "可視衛星フィルタを解除しました",
+    elevation: "仰角",
+    azimuth: "方位",
+    range: "距離",
+    noVisibleNow: "現在しきい値以上で見える衛星はありません",
+    minutesLater: (n) => `${n}分後`,
+    maxCandidateElevation: "最大候補仰角",
+    noUpcoming: "次回通過候補なし",
+    visibleHeader: (count, min) => `現在見える衛星 ${count}機 (${min}°以上・地図に反映中)`,
+    upcomingHeader: "次回通過候補（サンプル探索）",
+    visibleCount: (n) => `可視 ${n}`,
+    allCount: (n) => `全 ${n}`,
+    detailsTitle: "衛星詳細",
+    fields: {
+      name: "衛星名",
+      norad: "NORAD番号",
+      inclination: "軌道傾斜角",
+      meanMotion: "平均運動",
+      densityProxy: "密度proxy",
+      altitude: "高度",
+      altitudeLayer: "高度レイヤー",
+      latitude: "緯度",
+      longitude: "経度",
+      velocity: "速度",
+    },
+    insufficientBstar: "BSTARが有効な衛星が不足しています",
+    chartHigh: "high",
+    chartLow: "low",
+    chartMedian: "median",
+    chartHighCount: "high",
+    altitudeChange: "高度変化",
+    around90: "前後90分",
+  },
+  en: {
+    "top.catalogue": "Catalogue",
+    "top.demo": "LIVE DEMO",
+    "panel.catalogue": "Catalogue",
+    "panel.fleet": "Starlink Fleet",
+    "button.refresh": "Refresh TLE",
+    "stat.satellites": "Satellites",
+    "stat.orbits": "Orbit lines",
+    "stat.time": "Time",
+    "search.label": "Satellite Search",
+    "search.placeholder": "STARLINK-2455 / 48117",
+    "search.button": "Search",
+    "search.help": "Search by satellite name or NORAD number",
+    "control.satelliteLimit": "Displayed Satellites",
+    "control.orbitLimit": "Orbit Lines",
+    "control.speed": "Time Scale",
+    "toggle.all": "Show all",
+    "toggle.orbits": "Orbit lines",
+    "toggle.labels": "Labels",
+    "view.mode": "Map Mode",
+    "view.3d": "3D Earth",
+    "view.2d": "2D World Map",
+    "view.help": "In 2D mode, satellite subpoints and the selected satellite ground track are projected by latitude/longitude.",
+    "altitude.title": "Altitude Colors",
+    "altitude.help": "Satellites are color-coded by altitude computed from the current TLE.",
+    "altitude.low": "< 400 km / low altitude",
+    "altitude.midLow": "400-500 km / low orbit band",
+    "altitude.standard": "500-560 km / standard shell",
+    "altitude.high": "560 km+ / higher shell",
+    "map.title": "2D Ground Track",
+    "map.help": "Satellite subpoints and selected ground track",
+    "scene.elapsed": "Mission Elapsed",
+    "scene.propagator": "Propagator",
+    "readout.wait": "Waiting for data",
+    "readout.source": "CelesTrak Starlink TLE",
+    "thermo.title": "Thermosphere Density Proxy",
+    "thermo.help": "A relative atmospheric-drag indicator estimated from TLE BSTAR. It includes satellite shape, attitude, and maneuvering effects, so it is not absolute density.",
+    "thermo.wait": "Shown after satellite data loads",
+    "watch.title": "Reentry / Low-Altitude Watch",
+    "button.update": "Update",
+    "watch.help": "Lists satellites below 300 km or with high BSTAR-derived proxy values.",
+    "visibility.title": "Visible Satellites From Site",
+    "visibility.help": "Computes Starlink satellites above the elevation threshold from the selected site, plus upcoming pass candidates.",
+    "visibility.preset": "Site Preset",
+    "visibility.custom": "Custom",
+    "visibility.lat": "Latitude",
+    "visibility.lon": "Longitude",
+    "visibility.minElevation": "Min Elevation",
+    "visibility.compute": "Compute Visibility",
+    "visibility.clear": "Clear View",
+    "visibility.wait": "Choose a site and compute visibility",
+    "export.title": "Report Export",
+    "export.help": "Exports current display conditions, selected satellite, thermosphere proxy plot, and visible satellite data.",
+    "export.png": "PNG Report",
+    "export.csv": "CSV Data",
+    "methodology": "View Methodology",
+    "footer.source": "Public Starlink TLE derived from CelesTrak",
+    loadingStatus: "Loading TLE",
+    loadingMessage: "Loading the Starlink group from CelesTrak",
+    loadedStatus: "Loaded",
+    cacheStatus: "Cached data",
+    demoStatus: "Demo data",
+    textureStatus: "Earth texture unavailable",
+    textureMessage: "The Earth texture could not be loaded, so the app is continuing with a solid-color globe.",
+    parseEmpty: "TLE parsing returned 0 records",
+    cacheMessage: (age) => `Displaying data fetched ${age} ago because the public TLE refresh failed`,
+    demoMessage: (error) => `Could not fetch public TLE. Press Refresh TLE after the connection recovers: ${error}`,
+    ageMinutes: (n) => `${n} min`,
+    ageHours: (n) => `${n} hr`,
+    tleLoaded: (n) => `Loaded ${n} Starlink TLE records`,
+    fetchedAt: (date) => `Fetched at: ${date}`,
+    latestEpoch: (date) => `Latest TLE epoch: ${date}`,
+    unknown: "Unknown",
+    enterSearch: "Enter a satellite name or NORAD number",
+    notFound: (q) => `No matching satellite found: ${q}`,
+    highlighted: (name, norad) => `${name} / NORAD ${norad} highlighted in red`,
+    mapHover: "2D map hover",
+    hover: "Hovering",
+    noSatData: "Shown after satellite data loads",
+    noWatch: "No matching satellites",
+    lowAltitude: "Low altitude",
+    highBstar: "High BSTAR",
+    altitude: "Altitude",
+    proxy: "proxy",
+    numericLatLon: "Enter numeric latitude and longitude values",
+    loadSatFirst: "Load satellite data first",
+    filterCleared: "Visible-satellite filter cleared",
+    elevation: "Elevation",
+    azimuth: "Azimuth",
+    range: "Range",
+    noVisibleNow: "No satellites are currently above the threshold",
+    minutesLater: (n) => `${n} min later`,
+    maxCandidateElevation: "Candidate max elevation",
+    noUpcoming: "No upcoming pass candidates",
+    visibleHeader: (count, min) => `${count} visible satellites (${min}°+; reflected on map)`,
+    upcomingHeader: "Upcoming pass candidates (sample search)",
+    visibleCount: (n) => `Visible ${n}`,
+    allCount: (n) => `All ${n}`,
+    detailsTitle: "Satellite Details",
+    fields: {
+      name: "Satellite",
+      norad: "NORAD number",
+      inclination: "Inclination",
+      meanMotion: "Mean motion",
+      densityProxy: "Density proxy",
+      altitude: "Altitude",
+      altitudeLayer: "Altitude layer",
+      latitude: "Latitude",
+      longitude: "Longitude",
+      velocity: "Velocity",
+    },
+    insufficientBstar: "Not enough satellites with valid BSTAR",
+    chartHigh: "high",
+    chartLow: "low",
+    chartMedian: "median",
+    chartHighCount: "high",
+    altitudeChange: "Altitude Change",
+    around90: "±90 min",
+  },
+};
+
 const state = {
   satrecs: [],
   displaySats: [],
@@ -30,6 +272,7 @@ const state = {
   pinnedSat: null,
   simulationDate: new Date(),
   lastFrameTime: performance.now(),
+  language: "ja",
   speed: 12,
   viewMode: "3d",
   satelliteLimit: 500,
@@ -75,6 +318,7 @@ const els = {
   visibilityResults: document.querySelector("#visibilityResults"),
   exportPngButton: document.querySelector("#exportPngButton"),
   exportCsvButton: document.querySelector("#exportCsvButton"),
+  languageSelect: document.querySelector("#languageSelect"),
 };
 
 const renderer = new THREE.WebGLRenderer({
@@ -213,15 +457,115 @@ els.showLabels.addEventListener("change", () => {
 });
 els.view3dButton.addEventListener("click", () => setViewMode("3d"));
 els.view2dButton.addEventListener("click", () => setViewMode("2d"));
+els.languageSelect.addEventListener("change", () => setLanguage(els.languageSelect.value));
 els.canvas.addEventListener("pointermove", onPointerMove);
 els.canvas.addEventListener("click", onCanvasClick);
 els.map2dCanvas.addEventListener("pointermove", onMapPointerMove);
 els.map2dCanvas.addEventListener("click", onMapClick);
 window.addEventListener("resize", resize);
 
+initLanguage();
 setViewMode(state.viewMode);
 loadTle();
 animate();
+
+function currentLang() {
+  return I18N[state.language] ? state.language : "ja";
+}
+
+function t(key, ...args) {
+  const value = I18N[currentLang()][key] ?? I18N.ja[key] ?? key;
+  return typeof value === "function" ? value(...args) : value;
+}
+
+function setLanguage(language) {
+  state.language = I18N[language] ? language : "ja";
+  localStorage.setItem(LANGUAGE_KEY, state.language);
+  document.documentElement.lang = state.language;
+  els.languageSelect.value = state.language;
+  applyTranslations();
+  updateSatelliteLimitControl();
+  updateThermospherePlot();
+  updateReentryWatchList();
+  if (state.selectedSat) showSatelliteDetails(state.selectedSat);
+}
+
+function initLanguage() {
+  const saved = localStorage.getItem(LANGUAGE_KEY);
+  const browserLanguage = navigator.language?.toLowerCase().startsWith("en") ? "en" : "ja";
+  state.language = I18N[saved] ? saved : browserLanguage;
+  els.languageSelect.value = state.language;
+  setLanguage(state.language);
+}
+
+function applyTranslations() {
+  const textMap = [
+    [".topbar-meta b", "top.catalogue"],
+    [".topbar-meta > span:nth-of-type(2)", "top.demo"],
+    [".panel-head .eyebrow", "panel.catalogue"],
+    [".panel-head h2", "panel.fleet"],
+    ["#refreshButton", "button.refresh"],
+    [".status-grid div:nth-child(1) span", "stat.satellites"],
+    [".status-grid div:nth-child(2) span", "stat.orbits"],
+    [".status-grid div:nth-child(3) span", "stat.time"],
+    [".search-panel label span", "search.label"],
+    ["#satelliteSearchButton", "search.button"],
+    ["#satelliteSearchStatus", "search.help"],
+    [".control-stack label:nth-child(1) span", "control.satelliteLimit"],
+    [".control-stack label:nth-child(2) span", "control.orbitLimit"],
+    [".control-stack label:nth-child(3) span", "control.speed"],
+    [".toggles label:nth-child(1) span", "toggle.all"],
+    [".toggles label:nth-child(2) span", "toggle.orbits"],
+    [".toggles label:nth-child(3) span", "toggle.labels"],
+    [".view-mode-panel > span", "view.mode"],
+    ["#view3dButton", "view.3d"],
+    ["#view2dButton", "view.2d"],
+    [".view-mode-panel p", "view.help"],
+    [".altitude-legend > span", "altitude.title"],
+    [".altitude-legend p", "altitude.help"],
+    [".legend-items b:nth-of-type(1)", "altitude.low"],
+    [".legend-items b:nth-of-type(2)", "altitude.midLow"],
+    [".legend-items b:nth-of-type(3)", "altitude.standard"],
+    [".legend-items b:nth-of-type(4)", "altitude.high"],
+    [".map2d-caption strong", "map.title"],
+    [".map2d-caption span", "map.help"],
+    [".hud .eyebrow", "scene.elapsed"],
+    [".scene-meta span", "scene.propagator"],
+    ["#readout > span", "readout.wait"],
+    ["#readout > strong", "readout.source"],
+    [".thermosphere-panel > span", "thermo.title"],
+    [".thermosphere-panel p", "thermo.help"],
+    ["#thermospherePlot strong", "thermo.wait"],
+    [".watch-panel .panel-row span", "watch.title"],
+    ["#updateWatchButton", "button.update"],
+    [".watch-panel p", "watch.help"],
+    ["#reentryWatchList strong", "thermo.wait"],
+    [".visibility-panel > span", "visibility.title"],
+    [".visibility-panel p", "visibility.help"],
+    [".visibility-panel > label span", "visibility.preset"],
+    [".coordinate-grid label:nth-child(1) span", "visibility.lat"],
+    [".coordinate-grid label:nth-child(2) span", "visibility.lon"],
+    [".coordinate-grid label:nth-child(3) span", "visibility.minElevation"],
+    ["#computeVisibilityButton", "visibility.compute"],
+    ["#clearVisibilityButton", "visibility.clear"],
+    ["#visibilityResults strong", "visibility.wait"],
+    [".export-panel > span", "export.title"],
+    [".export-panel p", "export.help"],
+    ["#exportPngButton", "export.png"],
+    ["#exportCsvButton", "export.csv"],
+    [".note a[href='./methodology.html']", "methodology"],
+    [".app-footer span:first-child", "footer.source"],
+  ];
+
+  for (const [selector, key] of textMap) {
+    const element = document.querySelector(selector);
+    if (element) element.textContent = t(key);
+  }
+
+  els.satelliteSearch.placeholder = t("search.placeholder");
+  const customOption = els.observerPreset.querySelector('option[value="custom"]');
+  if (customOption) customOption.textContent = t("visibility.custom");
+}
 
 function loadEarthTexture() {
   const loader = new THREE.TextureLoader();
@@ -235,20 +579,20 @@ function loadEarthTexture() {
     },
     undefined,
     () => {
-      setReadout("地球テクスチャ未読込", "地球画像を取得できなかったため、単色表示で続行しています");
+      setReadout(t("textureStatus"), t("textureMessage"));
     },
   );
 }
 
 async function loadTle() {
-  setReadout("TLE取得中", "CelesTrakからStarlinkグループを読み込んでいます");
+  setReadout(t("loadingStatus"), t("loadingMessage"));
   els.refreshButton.disabled = true;
 
   try {
     const text = await fetchTleText();
     const parsed = parseTle(text);
     if (parsed.length === 0) {
-      throw new Error("TLEの解析結果が0件でした");
+      throw new Error(t("parseEmpty"));
     }
 
     const fetchedAt = Date.now();
@@ -258,7 +602,7 @@ async function loadTle() {
     ensureSatelliteMeshCapacity(parsed.length);
     rebuildSatellites();
     rebuildOrbits();
-    setReadout("取得完了", tleReadoutLines(parsed, fetchedAt));
+    setReadout(t("loadedStatus"), tleReadoutLines(parsed, fetchedAt));
   } catch (error) {
     const cached = loadCachedTle();
     if (cached) {
@@ -268,9 +612,9 @@ async function loadTle() {
       rebuildSatellites();
       rebuildOrbits();
       setReadout(
-        "キャッシュ表示",
+        t("cacheStatus"),
         [
-          `公開TLEの再取得に失敗したため、${cached.ageText}前の取得データを表示しています`,
+          t("cacheMessage", cached.ageText),
           ...tleReadoutLines(cached.parsed, cached.fetchedAt),
         ],
       );
@@ -281,7 +625,7 @@ async function loadTle() {
       ensureSatelliteMeshCapacity(demo.length);
       rebuildSatellites();
       rebuildOrbits();
-      setReadout("デモ表示", `公開TLEを取得できませんでした。接続回復後にTLE更新を押してください: ${error.message}`);
+      setReadout(t("demoStatus"), t("demoMessage", error.message));
     }
   } finally {
     els.refreshButton.disabled = false;
@@ -347,8 +691,8 @@ function loadCachedTle() {
 
     const ageMinutes = Math.max(1, Math.round((Date.now() - cached.fetchedAt) / 60000));
     const ageText = ageMinutes < 60
-      ? `${ageMinutes}分`
-      : `${Math.round(ageMinutes / 60)}時間`;
+      ? t("ageMinutes", ageMinutes)
+      : t("ageHours", Math.round(ageMinutes / 60));
 
     return { parsed, ageText, fetchedAt: cached.fetchedAt };
   } catch {
@@ -358,9 +702,9 @@ function loadCachedTle() {
 
 function tleReadoutLines(sats, fetchedAt) {
   return [
-    `${sats.length.toLocaleString()}機のStarlink TLEを読み込みました`,
-    `取得時刻: ${formatDateTime(new Date(fetchedAt))}`,
-    `TLE最新epoch: ${latestTleEpoch(sats)}`,
+    t("tleLoaded", sats.length.toLocaleString()),
+    t("fetchedAt", formatDateTime(new Date(fetchedAt))),
+    t("latestEpoch", latestTleEpoch(sats)),
   ];
 }
 
@@ -370,7 +714,7 @@ function latestTleEpoch(sats) {
     return Number.isFinite(epoch) && epoch > max ? epoch : max;
   }, -Infinity);
 
-  if (!Number.isFinite(latest)) return "不明";
+  if (!Number.isFinite(latest)) return t("unknown");
   return formatDateTime(julianDateToDate(latest));
 }
 
@@ -474,7 +818,7 @@ function setViewMode(mode) {
 function searchSatellite() {
   const query = normalizeSatelliteQuery(els.satelliteSearch.value);
   if (!query) {
-    setSearchStatus("衛星名またはNORAD番号を入力してください");
+    setSearchStatus(t("enterSearch"));
     return;
   }
 
@@ -485,12 +829,12 @@ function searchSatellite() {
   });
 
   if (!sat) {
-    setSearchStatus(`該当する衛星が見つかりません: ${els.satelliteSearch.value}`);
+    setSearchStatus(t("notFound", els.satelliteSearch.value));
     return;
   }
 
   selectSatellite(sat);
-  setSearchStatus(`${sat.name} / NORAD ${sat.satrec.satnum} を赤で強調表示中`);
+  setSearchStatus(t("highlighted", sat.name, sat.satrec.satnum));
 }
 
 function normalizeSatelliteQuery(value) {
@@ -670,7 +1014,7 @@ function onMapPointerMove(event) {
   const sat = pickMapSatellite(event);
   els.map2dCanvas.style.cursor = sat ? "pointer" : "crosshair";
   if (!sat || state.selectedSat) return;
-  setReadout("2D地図ホバー", sat.name);
+  setReadout(t("mapHover"), sat.name);
 }
 
 function onMapClick(event) {
@@ -715,7 +1059,7 @@ function findSatelliteByNorad(norad) {
 function updateReentryWatchList() {
   if (!els.reentryWatchList) return;
   if (state.satrecs.length === 0) {
-    els.reentryWatchList.innerHTML = "<strong>衛星データ取得後に表示</strong>";
+    els.reentryWatchList.innerHTML = `<strong>${escapeHtml(t("noSatData"))}</strong>`;
     return;
   }
 
@@ -737,14 +1081,14 @@ function updateReentryWatchList() {
     .slice(0, 12);
 
   if (items.length === 0) {
-    els.reentryWatchList.innerHTML = "<strong>該当衛星なし</strong>";
+    els.reentryWatchList.innerHTML = `<strong>${escapeHtml(t("noWatch"))}</strong>`;
     return;
   }
 
   els.reentryWatchList.innerHTML = items.map((item) => `
     <button class="mini-item" type="button" data-norad="${escapeHtml(item.sat.satrec.satnum)}">
       <b>${escapeHtml(item.sat.name)} / ${escapeHtml(item.sat.satrec.satnum)}</b>
-      <span>${item.lowAltitude ? "低高度" : "高BSTAR"} ・ 高度 ${item.telemetry.altitudeKm.toFixed(1)} km ・ proxy ${item.proxy?.index.toFixed(1) ?? "-"}</span>
+      <span>${item.lowAltitude ? t("lowAltitude") : t("highBstar")} ・ ${t("altitude")} ${item.telemetry.altitudeKm.toFixed(1)} km ・ ${t("proxy")} ${item.proxy?.index.toFixed(1) ?? "-"}</span>
     </button>
   `).join("");
 }
@@ -764,7 +1108,7 @@ function observerFromInputs() {
   const minElevationDeg = Number(els.minElevation.value);
 
   if (!Number.isFinite(latitudeDeg) || !Number.isFinite(longitudeDeg)) {
-    throw new Error("緯度・経度を数値で入力してください");
+    throw new Error(t("numericLatLon"));
   }
 
   return {
@@ -781,7 +1125,7 @@ function observerFromInputs() {
 
 function computeVisibility() {
   if (state.satrecs.length === 0) {
-    els.visibilityResults.innerHTML = "<strong>衛星データを先に取得してください</strong>";
+    els.visibilityResults.innerHTML = `<strong>${escapeHtml(t("loadSatFirst"))}</strong>`;
     return;
   }
 
@@ -819,7 +1163,7 @@ function computeVisibility() {
 function clearVisibilityFilter() {
   state.visibilityFilter = null;
   rebuildSatellites();
-  els.visibilityResults.innerHTML = "<strong>可視衛星フィルタを解除しました</strong>";
+  els.visibilityResults.innerHTML = `<strong>${escapeHtml(t("filterCleared"))}</strong>`;
 }
 
 function lookAnglesForSatellite(sat, observer, date) {
@@ -857,17 +1201,17 @@ function findUpcomingPasses(observer, limit) {
 
 function renderVisibilityResults(visibleNow, upcoming, observer) {
   const visibleHtml = visibleNow.length > 0
-    ? visibleNow.slice(0, 10).map(({ sat, look }) => miniVisibilityItem(sat, `仰角 ${look.elevationDeg.toFixed(1)}° ・ 方位 ${look.azimuthDeg.toFixed(1)}° ・ 距離 ${look.rangeKm.toFixed(0)} km`)).join("")
-    : "<strong>現在しきい値以上で見える衛星はありません</strong>";
+    ? visibleNow.slice(0, 10).map(({ sat, look }) => miniVisibilityItem(sat, `${t("elevation")} ${look.elevationDeg.toFixed(1)}° ・ ${t("azimuth")} ${look.azimuthDeg.toFixed(1)}° ・ ${t("range")} ${look.rangeKm.toFixed(0)} km`)).join("")
+    : `<strong>${escapeHtml(t("noVisibleNow"))}</strong>`;
 
   const upcomingHtml = upcoming.length > 0
-    ? upcoming.map(({ sat, look, date, minute }) => miniVisibilityItem(sat, `${minute}分後 ・ ${formatDateTime(date)} ・ 最大候補仰角 ${look.elevationDeg.toFixed(1)}°`)).join("")
-    : "<strong>次回通過候補なし</strong>";
+    ? upcoming.map(({ sat, look, date, minute }) => miniVisibilityItem(sat, `${t("minutesLater", minute)} ・ ${formatDateTime(date)} ・ ${t("maxCandidateElevation")} ${look.elevationDeg.toFixed(1)}°`)).join("")
+    : `<strong>${escapeHtml(t("noUpcoming"))}</strong>`;
 
   return `
-    <strong>現在見える衛星 ${visibleNow.length.toLocaleString()}機 (${observer.minElevationDeg.toFixed(0)}°以上・地図に反映中)</strong>
+    <strong>${escapeHtml(t("visibleHeader", visibleNow.length.toLocaleString(), observer.minElevationDeg.toFixed(0)))}</strong>
     ${visibleHtml}
-    <strong>次回通過候補（サンプル探索）</strong>
+    <strong>${escapeHtml(t("upcomingHeader"))}</strong>
     ${upcomingHtml}
   `;
 }
@@ -884,9 +1228,9 @@ function miniVisibilityItem(sat, detail) {
 function updateSatelliteLimitControl() {
   els.satelliteLimit.disabled = state.showAllSatellites || Boolean(state.visibilityFilter);
   els.satelliteLimitValue.textContent = state.visibilityFilter
-    ? `可視 ${state.displaySats.length.toLocaleString()}`
+    ? t("visibleCount", state.displaySats.length.toLocaleString())
     : state.showAllSatellites
-      ? `全 ${state.satrecs.length.toLocaleString()}`
+      ? t("allCount", state.satrecs.length.toLocaleString())
     : String(state.satelliteLimit);
 }
 
@@ -1070,7 +1414,7 @@ function onPointerMove(event) {
   els.canvas.style.cursor = sat ? "pointer" : "grab";
 
   if (!sat || state.selectedSat) return;
-  setReadout("ホバー中", sat.name);
+  setReadout(t("hover"), sat.name);
 }
 
 function onCanvasClick(event) {
@@ -1118,29 +1462,29 @@ function showSatelliteDetails(sat) {
   const altitudeSeries = buildAltitudeSeries(sat.satrec, state.simulationDate);
   const densityProxy = thermosphereProxy(sat);
   const rows = [
-    ["衛星名", sat.name],
-    ["NORAD番号", sat.satrec.satnum ?? sat.line1.slice(2, 7).trim()],
+    [t("fields").name, sat.name],
+    [t("fields").norad, sat.satrec.satnum ?? sat.line1.slice(2, 7).trim()],
     ["TLE epoch", formatEpoch(sat.satrec)],
-    ["軌道傾斜角", `${THREE.MathUtils.radToDeg(sat.satrec.inclo).toFixed(2)}°`],
-    ["平均運動", `${(sat.satrec.no * 1440 / (2 * Math.PI)).toFixed(5)} rev/day`],
+    [t("fields").inclination, `${THREE.MathUtils.radToDeg(sat.satrec.inclo).toFixed(2)}°`],
+    [t("fields").meanMotion, `${(sat.satrec.no * 1440 / (2 * Math.PI)).toFixed(5)} rev/day`],
     ["BSTAR", formatBstar(sat.satrec.bstar)],
-    ["密度proxy", densityProxy ? `${densityProxy.index.toFixed(1)} / 100` : "不明"],
+    [t("fields").densityProxy, densityProxy ? `${densityProxy.index.toFixed(1)} / 100` : t("unknown")],
   ];
 
   if (telemetry) {
     rows.push(
-      ["高度", `${telemetry.altitudeKm.toFixed(1)} km`],
-      ["高度レイヤー", band.label],
-      ["緯度", `${telemetry.latitudeDeg.toFixed(3)}°`],
-      ["経度", `${telemetry.longitudeDeg.toFixed(3)}°`],
+      [t("fields").altitude, `${telemetry.altitudeKm.toFixed(1)} km`],
+      [t("fields").altitudeLayer, band.label],
+      [t("fields").latitude, `${telemetry.latitudeDeg.toFixed(3)}°`],
+      [t("fields").longitude, `${telemetry.longitudeDeg.toFixed(3)}°`],
     );
 
     if (telemetry.velocityKmS) {
-      rows.push(["速度", `${telemetry.velocityKmS.toFixed(3)} km/s`]);
+      rows.push([t("fields").velocity, `${telemetry.velocityKmS.toFixed(3)} km/s`]);
     }
   }
 
-  setDetailReadout("衛星詳細", rows, altitudeSeries);
+  setDetailReadout(t("detailsTitle"), rows, altitudeSeries);
 }
 
 function exportCsvReport() {
@@ -1411,7 +1755,7 @@ function thermosphereProxy(sat) {
 }
 
 function formatBstar(value) {
-  if (!Number.isFinite(value)) return "不明";
+  if (!Number.isFinite(value)) return t("unknown");
   return value.toExponential(3);
 }
 
@@ -1436,7 +1780,7 @@ function updateThermospherePlot() {
 
 function renderThermospherePlot(points) {
   if (points.length < 2) {
-    return "<strong>BSTARが有効な衛星が不足しています</strong>";
+    return `<strong>${escapeHtml(t("insufficientBstar"))}</strong>`;
   }
 
   const sampled = sampleArray(points, 260);
@@ -1462,22 +1806,22 @@ function renderThermospherePlot(points) {
   const highCount = points.filter((point) => point.proxy.index >= 70).length;
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="BSTAR由来の熱圏密度プロキシ散布図">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(t("thermo.title"))}">
       <line class="chart-grid" x1="${pad.left}" y1="${pad.top}" x2="${pad.left + plotWidth}" y2="${pad.top}"></line>
       <line class="chart-grid" x1="${pad.left}" y1="${pad.top + plotHeight / 2}" x2="${pad.left + plotWidth}" y2="${pad.top + plotHeight / 2}"></line>
       <line class="chart-grid" x1="${pad.left}" y1="${pad.top + plotHeight}" x2="${pad.left + plotWidth}" y2="${pad.top + plotHeight}"></line>
       <line class="chart-axis" x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + plotHeight}"></line>
       <line class="chart-axis" x1="${pad.left}" y1="${pad.top + plotHeight}" x2="${pad.left + plotWidth}" y2="${pad.top + plotHeight}"></line>
       ${circles}
-      <text x="4" y="${pad.top + 4}">high</text>
-      <text x="4" y="${pad.top + plotHeight + 4}">low</text>
+      <text x="4" y="${pad.top + 4}">${escapeHtml(t("chartHigh"))}</text>
+      <text x="4" y="${pad.top + plotHeight + 4}">${escapeHtml(t("chartLow"))}</text>
       <text x="${pad.left}" y="${height - 6}">${minAlt} km</text>
       <text x="${pad.left + plotWidth - 42}" y="${height - 6}">${maxAlt} km</text>
     </svg>
     <div class="chart-summary">
       <span>${points.length.toLocaleString()} sats</span>
-      <span>median ${median.toFixed(1)}</span>
-      <span>high ${highCount.toLocaleString()}</span>
+      <span>${escapeHtml(t("chartMedian"))} ${median.toFixed(1)}</span>
+      <span>${escapeHtml(t("chartHighCount"))} ${highCount.toLocaleString()}</span>
     </div>
   `;
 }
@@ -1498,12 +1842,12 @@ function hexColor(value) {
 }
 
 function formatEpoch(satrec) {
-  if (!Number.isFinite(satrec.jdsatepoch)) return "不明";
+  if (!Number.isFinite(satrec.jdsatepoch)) return t("unknown");
   return formatDateTime(julianDateToDate(satrec.jdsatepoch));
 }
 
 function formatDateTime(date) {
-  return date.toLocaleString("ja-JP", { hour12: false });
+  return date.toLocaleString(currentLang() === "en" ? "en-US" : "ja-JP", { hour12: false });
 }
 
 function buildAltitudeSeries(satrec, centerDate) {
@@ -1551,10 +1895,10 @@ function renderAltitudeChart(samples) {
   return `
     <div class="altitude-chart">
       <div class="chart-head">
-        <span>高度変化</span>
-        <strong>前後90分</strong>
+        <span>${escapeHtml(t("altitudeChange"))}</span>
+        <strong>${escapeHtml(t("around90"))}</strong>
       </div>
-      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="選択衛星の高度変化">
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(t("altitudeChange"))}">
         <line class="chart-grid" x1="${pad.left}" y1="${pad.top}" x2="${pad.left + plotWidth}" y2="${pad.top}"></line>
         <line class="chart-grid" x1="${pad.left}" y1="${pad.top + plotHeight / 2}" x2="${pad.left + plotWidth}" y2="${pad.top + plotHeight / 2}"></line>
         <line class="chart-grid" x1="${pad.left}" y1="${pad.top + plotHeight}" x2="${pad.left + plotWidth}" y2="${pad.top + plotHeight}"></line>

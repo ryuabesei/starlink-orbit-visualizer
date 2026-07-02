@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Starlink Orbit Visualizer</title>
-    <link rel="stylesheet" href="./styles.css?v=20260702-2">
+    <link rel="stylesheet" href="./styles.css?v=20260702-3">
   </head>
   <body>
     <header class="topbar">
@@ -13,6 +13,13 @@
         <span>PUBLIC TLE</span>
         <b>Catalogue</b>
         <span>LIVE DEMO</span>
+        <label class="language-switch">
+          <span>LANG</span>
+          <select id="languageSelect" aria-label="Language">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+          </select>
+        </label>
       </div>
     </header>
 
@@ -212,6 +219,6 @@
       <span>© 2026 STARLINK OPS DEMO</span>
     </footer>
 
-    <script type="module" src="./app.js?v=20260702-1"></script>
+    <script type="module" src="./app.js?v=20260702-4"></script>
   </body>
 </html>

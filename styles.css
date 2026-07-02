@@ -772,6 +772,33 @@ body {
   letter-spacing: 0.08em;
 }
 
+.language-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
+}
+
+.language-switch span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.language-switch select {
+  min-height: 30px;
+  padding: 0 26px 0 10px;
+  border: 1px solid rgba(217, 155, 43, 0.7);
+  border-radius: 6px;
+  background: rgba(217, 155, 43, 0.08);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(340px, 390px);
