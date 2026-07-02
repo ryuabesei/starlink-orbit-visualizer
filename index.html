@@ -4,48 +4,41 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Starlink Orbit Visualizer</title>
-    <link rel="stylesheet" href="./styles.css?v=20260619-7">
+    <link rel="stylesheet" href="./styles.css?v=20260702-1">
   </head>
   <body>
-    <main class="app-shell">
-      <section class="scene" aria-label="Starlink orbital visualization">
-        <canvas id="space"></canvas>
-        <div id="map2d" class="map2d" aria-label="2D world map satellite ground tracks">
-          <canvas id="map2dCanvas"></canvas>
-          <div class="map2d-caption">
-            <strong>2D Ground Track</strong>
-            <span>衛星の地上直下点と選択衛星の軌跡</span>
-          </div>
-        </div>
-        <div class="hud">
-          <div>
-            <p class="eyebrow">Public TLE / CelesTrak</p>
-            <h1>Starlink Orbit Visualizer</h1>
-          </div>
-          <div class="status-grid">
-            <div>
-              <span>衛星</span>
-              <strong id="satelliteCount">0</strong>
-            </div>
-            <div>
-              <span>表示軌道</span>
-              <strong id="orbitCount">0</strong>
-            </div>
-            <div>
-              <span>時刻</span>
-              <strong id="simTime">--:--:--</strong>
-            </div>
-          </div>
-        </div>
-      </section>
+    <header class="topbar">
+      <div class="brand-mark">STARLINK<span>OPS</span></div>
+      <div class="topbar-meta">
+        <span>PUBLIC TLE</span>
+        <b>Catalogue</b>
+        <span>LIVE DEMO</span>
+      </div>
+    </header>
 
-      <aside class="control-panel" aria-label="controls">
+    <main class="app-shell">
+      <aside class="control-panel" aria-label="catalogue and controls">
         <div class="panel-head">
           <div>
-            <p class="eyebrow">Live controls</p>
-            <h2>軌道表示</h2>
+            <p class="eyebrow">Catalogue</p>
+            <h2>Starlink Fleet</h2>
           </div>
           <button id="refreshButton" type="button">TLE更新</button>
+        </div>
+
+        <div class="status-grid">
+          <div>
+            <span>衛星</span>
+            <strong id="satelliteCount">0</strong>
+          </div>
+          <div>
+            <span>表示軌道</span>
+            <strong id="orbitCount">0</strong>
+          </div>
+          <div>
+            <span>時刻</span>
+            <strong id="simTime">--:--:--</strong>
+          </div>
         </div>
 
         <form class="search-panel" id="satelliteSearchForm" role="search">
@@ -59,23 +52,25 @@
           <p id="satelliteSearchStatus">衛星名またはNORAD番号で検索できます</p>
         </form>
 
-        <label>
-          <span>表示する衛星数</span>
-          <input id="satelliteLimit" type="range" min="50" max="1500" step="50" value="500">
-          <output id="satelliteLimitValue">500</output>
-        </label>
+        <div class="control-stack">
+          <label>
+            <span>表示する衛星数</span>
+            <input id="satelliteLimit" type="range" min="50" max="1500" step="50" value="500">
+            <output id="satelliteLimitValue">500</output>
+          </label>
 
-        <label>
-          <span>軌道線の本数</span>
-          <input id="orbitLimit" type="range" min="5" max="80" step="5" value="25">
-          <output id="orbitLimitValue">25</output>
-        </label>
+          <label>
+            <span>軌道線の本数</span>
+            <input id="orbitLimit" type="range" min="5" max="80" step="5" value="25">
+            <output id="orbitLimitValue">25</output>
+          </label>
 
-        <label>
-          <span>時間倍率</span>
-          <input id="speed" type="range" min="0" max="120" step="1" value="12">
-          <output id="speedValue">12x</output>
-        </label>
+          <label>
+            <span>時間倍率</span>
+            <input id="speed" type="range" min="0" max="120" step="1" value="12">
+            <output id="speedValue">12x</output>
+          </label>
+        </div>
 
         <div class="toggles">
           <label>
@@ -103,13 +98,41 @@
 
         <div class="altitude-legend" aria-label="altitude color legend">
           <span>高度別カラー</span>
-          <p>現在のTLEから計算した衛星の高度で色分けしています。近い高度帯の衛星は同じ運用レイヤーにまとまって見えます。</p>
+          <p>現在のTLEから計算した衛星の高度で色分けしています。</p>
           <div class="legend-items">
             <i style="--swatch: #b78cff"></i><b>&lt; 400 km / 低高度</b>
-            <i style="--swatch: #67d7ff"></i><b>400-500 km / 主な低軌道帯</b>
-            <i style="--swatch: #84f2b6"></i><b>500-560 km / 標準的な運用帯</b>
+            <i style="--swatch: #67d7ff"></i><b>400-500 km / 低軌道帯</b>
+            <i style="--swatch: #84f2b6"></i><b>500-560 km / 標準運用帯</b>
             <i style="--swatch: #f8c45e"></i><b>560 km+ / 高めのシェル</b>
           </div>
+        </div>
+      </aside>
+
+      <section class="scene" aria-label="Starlink orbital visualization">
+        <canvas id="space"></canvas>
+        <div id="map2d" class="map2d" aria-label="2D world map satellite ground tracks">
+          <canvas id="map2dCanvas"></canvas>
+          <div class="map2d-caption">
+            <strong>2D Ground Track</strong>
+            <span>衛星の地上直下点と選択衛星の軌跡</span>
+          </div>
+        </div>
+        <div class="hud">
+          <div>
+            <p class="eyebrow">Mission Elapsed</p>
+            <h1>Starlink Orbit Visualizer</h1>
+          </div>
+          <div class="scene-meta">
+            <span>Propagator</span>
+            <strong>SGP4 ・ TLE</strong>
+          </div>
+        </div>
+      </section>
+
+      <aside class="insight-panel" aria-label="analytics and satellite details">
+        <div class="readout" id="readout">
+          <span>データ取得待ち</span>
+          <strong>CelesTrak Starlink TLE</strong>
         </div>
 
         <div class="thermosphere-panel" aria-label="thermosphere density proxy">
@@ -167,11 +190,6 @@
           </div>
         </div>
 
-        <div class="readout" id="readout">
-          <span>データ取得待ち</span>
-          <strong>CelesTrak Starlink TLE</strong>
-        </div>
-
         <div class="export-panel" aria-label="report export">
           <span>レポート出力</span>
           <p>現在の表示条件、選択衛星、熱圏proxy散布図、表示中衛星データを書き出します。</p>
@@ -189,6 +207,11 @@
       </aside>
     </main>
 
-    <script type="module" src="./app.js?v=20260619-7"></script>
+    <footer class="app-footer">
+      <span>Public Starlink TLE derived from CelesTrak</span>
+      <span>© 2026 STARLINK OPS DEMO</span>
+    </footer>
+
+    <script type="module" src="./app.js?v=20260702-1"></script>
   </body>
 </html>
