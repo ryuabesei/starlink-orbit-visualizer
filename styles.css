@@ -837,10 +837,10 @@ label span {
 }
 
 h1 {
-  max-width: 520px;
-  font-size: clamp(2rem, 4.2vw, 4.4rem);
+  max-width: 380px;
+  font-size: 3rem;
   font-weight: 500;
-  line-height: 0.98;
+  line-height: 1.02;
 }
 
 h2,
@@ -873,6 +873,28 @@ h2,
   font-family: var(--font-ui);
   font-size: 0.98rem;
   letter-spacing: 0.04em;
+}
+
+@media (max-width: 1700px) {
+  h1 {
+    max-width: 320px;
+    font-size: 2.45rem;
+  }
+
+  .hud {
+    top: 24px;
+  }
+}
+
+@media (max-width: 1450px) and (min-width: 1181px) {
+  h1 {
+    max-width: 260px;
+    font-size: 2rem;
+  }
+
+  .scene-meta {
+    min-width: 170px;
+  }
 }
 
 .status-grid {
